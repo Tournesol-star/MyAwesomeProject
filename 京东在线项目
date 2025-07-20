@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>京东页面在线项目</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-size: 12px;
+      background-color: #f4f4f4;
+    }
+
+    /* 顶部导航栏部分 */
+    .header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #e3e4e5;
+    }
+
+    .header-left {
+      margin-left: 340px;
+    }
+
+    .header-right {
+      margin-right: 340px;
+    }
+
+    .header-right ul {
+      font-size: 12px;
+      display: flex;
+      list-style: none;
+      gap: 10px;
+      white-space: nowrap;
+    }
+
+    .login {
+      color: #f22e00;
+    }
+
+    /* 搜索栏部分 */
+    .searcher-bg{
+      height: 70px;
+      width: 100%;
+      background-color: #fff;
+    }
+    .searcher {
+      height: 70px;
+      width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+  
+    }
+
+    .logo {
+      width: 70px;
+      height: 70px;
+      background-color: #f22e00;
+      margin-right: 80px;
+    }
+
+    .search {
+      width: 400px;
+      height: 30px;
+      background-color: aqua;
+    }
+
+    .search-btn {
+      width: 40px;
+      height: 30px;
+      background-color: #f200be;
+      margin-left: -1px;
+    }
+
+    .my_car {
+      width: 150px;
+      height: 30px;
+      background-color: #13f322;
+      margin: 0 100px;
+    }
+
+    .QR_code {
+      width: 70px;
+      height: 70px;
+      background-color: #0bd1db;
+      margin-right: 30px;
+    }
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-left: 10px;
+      margin-bottom: 0;
+    }
+
+    .service {
+      width: 100%;
+      height: 20px;
+      background-color: #591db9;
+    }
+    /* 主体内容部分 */
+
+    .main-container {
+      width: 1000px;
+      margin: 0 auto;
+      margin-top: 5px;
+      display: flex;
+      height: 400px;
+      background-color: #68a6a2;
+      gap: 10px;
+      border: 1px solid #000;
+    }
+    .left-cate {
+      width: 200px;
+      height: 400px;
+      background-color: #ebc322;
+    }
+    .mid1-cate {
+      width: 700px;
+      height: 400px;
+      background-color: #f200be;
+    }
+    .mid2-cate {
+      width: 400px;
+      height: 400px;
+      background-color: #145e96;
+    }
+    .right-cate {
+      width: 400px;
+      height: 400px;
+      background-color: #44d873;
+    }
+
+    /* 京东秒杀部分 */
+    .seckill {
+      position: relative;
+      width: 1000px;
+      height: 200px;
+      margin: 0 auto;
+      background-color: #f7f305;
+      margin-top: 30px;
+    }
+
+    /* 京东企业购展示部分 */
+    .goods {
+      width: 1000px;
+      height: 150px;
+      margin: 0 auto;
+      background-color: #0bd5f9;
+      margin-top: 30px;
+    }
+    /* 侧边栏部分 */
+    .side {
+      position: absolute;
+      top: 50%;
+      right: -70px;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 200px;
+      background-color: #ec7643;
+      margin-left: 4px;
+     
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 顶部导航栏部分 -->
+  <div class="header">
+    <div class="header-left">
+      <img src="#" alt="图片1">
+    </div>
+    <div class="header-middle"></div>
+    <div class="header-right">
+      <ul>
+        <li>你好,<a href="#" class="login">请登录</a></li>
+        <li>免费注册</li>
+        <li>我的订单</li>
+        <li>我的京东</li>
+        <li>企业采购</li>
+        <li>商家服务</li>
+        <li>网址导航</li>
+        <li>手机京东</li>
+        <li>网站无障碍</li>
+      </ul>
+    </div>
+  </div>
+  <!-- 顶部导航栏结束 -->
+  <!-- 搜索栏部分 -->
+   <div class="searcher-bg">
+    <div class="searcher">
+    <div class="logo"></div>
+    <div class="container">
+      <div class="search"></div>
+      <div class="search-btn"></div>
+      <div class="service">京东生鲜 京东家电 秒杀</div>
+    </div>
+    <div class="my_car"></div>
+    <div class="QR_code"></div>
+  </div>
+  <!-- 搜索栏结束 -->
+
+  <!-- 主题内容部分 -->
+  <div class="main-container">
+    <div class="left-cate"></div>
+    <div class="mid1-cate"></div>
+    <div class="mid2-cate"></div>
+    <div class="right-cate"></div>
+  </div>
+  <!-- 主题内容结束 -->
+
+  <!-- 京东秒杀部分 -->
+  <div class="seckill"> 
+    <!-- 侧边栏部分 -->
+  <span class="side"> </span>
+  </div>  
+  
+  <!-- 侧边栏结束 -->
+  <!-- 京东秒杀结束 -->
+
+
+
+
+
+
+  <!-- 京东企业购展示部分 -->
+  <div class="goods"> </div>
+  <!-- 京东企业购展示结束 -->
+
+
+</body>
+
+</html>
