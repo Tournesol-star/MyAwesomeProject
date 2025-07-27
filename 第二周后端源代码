@@ -1,0 +1,250 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+// 定义Redis上下文
+var ctx = context.Background()
+
+
+type Student struct {
+	ID        int       `json:"id" gorm:"primaryKey"`
+	Name      string    `json:"name"`
+	Age       int       `json:"age"`
+	Gender    string    `json:"gender"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+var (
+	db          *gorm.DB
+	redisClient *redis.Client
+)
+
+func main() {
+	initDB()
+	// 初始化Redis连接
+	initRedis()
+
+	// 创建Gin引擎
+	r := gin.Default()
+
+	// 定义API路由
+	api := r.Group("/api")
+	{
+		api.GET("/students", ListStudents)
+		api.POST("/students", CreateStudent)
+		api.GET("/students/:id", GetStudent)
+		api.PUT("/students/:id", UpdateStudent)
+		api.DELETE("/students/:id", DeleteStudent)
+	}
+
+	fmt.Println("Server is running on :8080")
+	r.Run(":8080")
+}
+
+// 初始化数据库连接
+func initDB() {
+    dsn := "root:@Hu123456@tcp(localhost:3306)/student_db?charset=utf8mb4&parseTime=True&loc=Local"
+    var err error
+    db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+        Logger: logger.Default.LogMode(logger.Info), 
+    })
+    if err != nil {
+        panic("failed to connect database: " + err.Error())
+    }
+    sqlDB, err := db.DB()
+    if err != nil {
+        panic("failed to get underlying sql.DB: " + err.Error())
+    }
+    sqlDB.SetMaxOpenConns(100)    // 最大打开连接数
+    sqlDB.SetMaxIdleConns(20)     // 最大空闲连接数
+    sqlDB.SetConnMaxIdleTime(5 * time.Minute) // 空闲连接最大存活时间
+    sqlDB.SetConnMaxLifetime(30 * time.Minute) // 连接最大存活时间
+
+    err = db.AutoMigrate(&Student{})
+    if err != nil {
+        panic("failed to migrate database: " + err.Error())
+    }
+}
+
+// 初始化Redis连接
+func initRedis() {
+	redisClient = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379", 
+		Password: "",               
+		DB:       0,                
+	})
+	_, err := redisClient.Ping(ctx).Result()
+	if err != nil {
+		panic("failed to connect redis: " + err.Error())
+	}
+}
+
+// 获取所有学生
+func ListStudents(c *gin.Context) {
+	// 尝试从Redis获取缓存
+	cachedData, err := redisClient.Get(ctx, "students:all").Result()
+	if err == nil {
+		// 缓存命中，直接返回
+		var students []Student
+		if err := json.Unmarshal([]byte(cachedData), &students); err == nil {
+			c.JSON(http.StatusOK, students)
+			return
+		}
+	}
+
+	// 缓存未命中，从数据库获取
+	var students []Student
+	result := db.Find(&students)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	// 存入Redis缓存，设置过期时间10分钟
+	data, _ := json.Marshal(students)
+	redisClient.Set(ctx, "students:all", data, 10*time.Minute)
+
+	c.JSON(http.StatusOK, students)
+}
+
+// 创建学生
+func CreateStudent(c *gin.Context) {
+	var student Student
+	if err := c.ShouldBindJSON(&student); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 使用GORM创建记录
+	result := db.Create(&student)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	// 清除相关缓存
+	redisClient.Del(ctx, "students:all")
+
+	c.JSON(http.StatusCreated, student)
+}
+
+// 根据ID查询学生
+func GetStudent(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 尝试从Redis获取缓存
+	cacheKey := fmt.Sprintf("student:%d", id)
+	cachedData, err := redisClient.Get(ctx, cacheKey).Result()
+	if err == nil {
+		// 缓存命中，直接返回
+		var student Student
+		if err := json.Unmarshal([]byte(cachedData), &student); err == nil {
+			c.JSON(http.StatusOK, student)
+			return
+		}
+	}
+
+	// 缓存未命中，从数据库获取
+	var student Student
+	result := db.First(&student, id)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "student not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	// 存入Redis缓存，设置过期时间10分钟
+	data, _ := json.Marshal(student)
+	redisClient.Set(ctx, cacheKey, data, 10*time.Minute)
+
+	c.JSON(http.StatusOK, student)
+}
+
+// 根据ID更新学生
+func UpdateStudent(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var student Student
+	if err := c.ShouldBindJSON(&student); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 检查学生是否存在
+	var existingStudent Student
+	result := db.First(&existingStudent, id)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "student not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	// 更新学生信息
+	student.ID = id // 确保ID正确
+	result = db.Save(&student)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	// 清除相关缓存
+	redisClient.Del(ctx, fmt.Sprintf("student:%d", id))
+	redisClient.Del(ctx, "students:all")
+
+	c.JSON(http.StatusOK, gin.H{"message": "student updated successfully"})
+}
+
+// 根据ID删除学生
+func DeleteStudent(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 删除学生
+	result := db.Delete(&Student{}, id)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "student not found"})
+		return
+	}
+
+	// 清除相关缓存
+	redisClient.Del(ctx, fmt.Sprintf("student:%d", id))
+	redisClient.Del(ctx, "students:all")
+
+	c.JSON(http.StatusOK, gin.H{"message": "student deleted successfully"})
+}
