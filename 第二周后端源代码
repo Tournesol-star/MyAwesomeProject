@@ -82,16 +82,19 @@ func initDB() {
 
 // 初始化Redis连接
 func initRedis() {
-	redisClient = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", 
-		Password: "",               
-		DB:       0,                
-	})
-	_, err := redisClient.Ping(ctx).Result()
-	if err != nil {
-		panic("failed to connect redis: " + err.Error())
-	}
-}
+  redisClient = redis.NewClient(&redis.Options{
+    Addr:     "localhost:6379", 
+    Password: "",               
+    DB:       0,    
+    PoolSize:     20,               // 最大连接数
+    MinIdleConns: 5,                // 最小空闲连接数
+    MaxIdleConns:  10,              // 最大空闲连接数
+    PoolTimeout:  3 * time.Second, // 等待连接超时时间            
+  })
+  _, err := redisClient.Ping(ctx).Result()
+  if err != nil {
+    panic("failed to connect redis: " + err.Error())
+  }
 
 // 获取所有学生
 func ListStudents(c *gin.Context) {
